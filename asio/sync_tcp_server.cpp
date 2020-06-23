@@ -8,8 +8,7 @@ using namespace std;
 using namespace boost;
 using namespace boost::asio;
 
-typedef boost::shared_ptr<ip::tcp::socket> socket_ptr; // smart pointer(no need to mannually deallocate, kinda like java references)
-boost::mutex mu;
+typedef boost::shared_ptr<ip::tcp::socket> socket_ptr; // smart pointer(no need to mannually deallocate
 
 void client_session(socket_ptr socket) {
     char buf[256];
@@ -44,7 +43,8 @@ int main() {
             * steps: "bind() ---> listen() ---> accept()" of a unix socket  
             */
 
-        std::cout << "Server started, open another terminal and run 'nc localhost 8888' to test this server" << std::endl; 
+        std::cout << ">> Server started, open another terminal and run 'nc localhost 8888' to test this server" << std::endl; 
+        std::cout << "   (Note: use 'netstat -tlnp' to check all TCP/IP port usage of this computer)" << std::endl;
 
         while(1) {
             socket_ptr socket(new ip::tcp::socket(service)); // new socket object and let the smart pointer to point to it
@@ -64,3 +64,5 @@ int main() {
 // test this program using the following cmd
 // nc localhost 8888
 // then type any message u want to send to the server
+
+// use "netstat -tlnp" to check linux TCP/IP port usages

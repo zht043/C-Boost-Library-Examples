@@ -1,6 +1,6 @@
 
 default: async_timer.exe backgnd_async.exe ip_query.exe basic_socket.exe \
-         sync_tcp_server.exe
+         sync_tcp_server.exe async_tcp_server.exe
 #multithreading_strand.exe
 
 boostlib = -lboost_system -lboost_thread -lpthread 
