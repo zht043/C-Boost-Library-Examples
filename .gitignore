@@ -1,2 +1,4 @@
 /**/*.exe
 .vscode/
+/**/.vscode/
+/**/ignore_me.cpp
