@@ -1,6 +1,6 @@
 
-default: async.exe sync.exe chrono.exe
-	@echo compilation completed
+default: async_timer.exe sync_timer.exe chrono.exe
+
 
 boostlib = -lboost_system -lboost_thread -lpthread -lboost_chrono
 #-L/usr/lib/x86_64-linux-gnu
@@ -12,11 +12,10 @@ cppflags = $(std) $(boostlib)
 %.o: %.cpp
 	g++ -c $< 
 
-async.exe: async_timer.o
+%.exe: %.o
 	g++ -o $@ $< $(cppflags) 
+	@rm *.o
+	@echo compilation completed
 
-sync.exe: sync_timer.o
-	g++ -o $@ $< $(cppflags) 
-
-chrono.exe: chrono.o
-	g++ -o $@ $< $(cppflags)
+clean:
+	@rm *.exe
