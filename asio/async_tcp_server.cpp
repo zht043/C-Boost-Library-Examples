@@ -13,12 +13,36 @@ using namespace boost::asio::ip;
 class TcpServer {
 
 private:
-    typedef boost::shared_ptr<tcp::socket> socket_ptr; // smart pointer(no need to mannually deallocate
-    typedef boost::shared_ptr<tcp::acceptor> acceptor_ptr;
+    class socket_service{
+    public:
+        tcp::socket *socket;
+        std::string *write_buffer;
+        asio::streambuf *read_buffer;
+        std::istream *read_stream;
+        tcp::acceptor *acceptor;
+        socket_service(tcp::socket *sock, tcp::acceptor *acc) {
+            this->socket = sock;
+            this->acceptor = acc;
+            this->read_buffer = new asio::streambuf();
+            this->read_stream = new std::istream(this->read_buffer);
+            this->write_buffer = NULL;
+        }
+        void set_write_buffer(std::string *buf) {
+            this->write_buffer = buf;
+        }
+        ~socket_service() {
+            delete socket;
+            delete write_buffer;
+            delete read_buffer;
+            delete read_stream;
+            delete acceptor;
+        }
+
+    };
+
     io_service *_service;
-    vector<acceptor_ptr> acceptors;
-    char read_buffer[256];
-    char write_buffer[256];
+    vector<socket_service*> services;
+    
 
 protected:
 public:
@@ -26,54 +50,57 @@ public:
         this->_service = &service;
     }
 
-    TcpServer(io_service& service, tcp::endpoint& ep) {
-        this->_service = &service;
-        acceptor_ptr acc(new tcp::acceptor(service, ep));   
-        acceptors.push_back(acc);
-    }
-
-    // add more endpoints to listen
-    void add_endpoint(tcp::endpoint& ep) {
-        acceptor_ptr acc(new tcp::acceptor(*_service, ep));   
-        acceptors.push_back(acc);
-    }
-
-    void start() {
-        socket_ptr socket;
-        for(auto& acc : acceptors) {
-            socket = socket_ptr(new tcp::socket(*_service));
-            acc->async_accept(*socket, 
-                boost::bind(&TcpServer::handle_accept, this, socket));
+    ~TcpServer() {
+        for(auto& service : services) {
+            delete service;
         }
     }
 
-    void handle_accept(socket_ptr socket) {
-        std::cout << "Accepted socket request from: [" 
-                  << socket->remote_endpoint().address().to_string() << " port "
-                  << socket->remote_endpoint().port() << "] " 
-                  << "on port " << socket->local_endpoint().port() 
-                  << std::endl;
+    void start(tcp::endpoint const &endpoint_to_listen) {
+        socket_service *sock_service = new socket_service(new tcp::socket(*_service), 
+                                               new tcp::acceptor(*_service, endpoint_to_listen));
+        services.push_back(sock_service);
 
-        socket->async_read_some(buffer(read_buffer), 
-                boost::bind(&TcpServer::handle_read, this, socket)); // read up to socket->receive_buffer_size
-        
+        sock_service->acceptor->async_accept(*(sock_service->socket), 
+            boost::bind(&TcpServer::handle_accept, this, sock_service));
     }
 
+
+    void handle_accept(socket_service* sock_service) {
+        std::cout << "Accepted socket request from: [" 
+                  << sock_service->socket->remote_endpoint().address().to_string() << " port "
+                  << sock_service->socket->remote_endpoint().port() << "] " 
+                  << "on port " << sock_service->socket->local_endpoint().port() 
+                  << std::endl;
+
+    /*
+        asio::async_read_until(*(service->socket), *(service->read_buffer), "\n", 
+                boost::bind(&TcpServer::handle_read, this, service)); // read up to socket->receive_buffer_size
+     */   
+
+        // invoke another accept on this endpoint as a new service
+        socket_service *new_sock_service = new socket_service(new tcp::socket(*_service), 
+                                               sock_service->acceptor); // same acceptor but using a new socket to accept new session
+        services.push_back(new_sock_service);
+        new_sock_service->acceptor->async_accept(*(new_sock_service->socket), 
+            boost::bind(&TcpServer::handle_accept, this, new_sock_service));
+    }
+/*
     void handle_read(socket_ptr socket) {
 
         std::cout << std::string(read_buffer);
+        memset(read_buffer, 0, strlen(read_buffer));
 
+        
         strcpy(write_buffer, "received!\n");
         socket->async_write_some(buffer(write_buffer, strlen(write_buffer)), 
-                boost::bind(&TcpServer::handle_write, this));
-
-
-        memset(read_buffer, 0, strlen(read_buffer));
-        socket->async_read_some(buffer(read_buffer), 
-                boost::bind(&TcpServer::handle_read, this, socket));
+                boost::bind(&TcpServer::handle_write, this, socket));
     } 
 
-    void handle_write(void) {}
+    void handle_write(socket_ptr socket) {
+        socket->async_read_some(buffer(read_buffer), 
+                boost::bind(&TcpServer::handle_read, this, socket)); // loop back to handle read
+    }*/
 
 };
 
@@ -82,17 +109,25 @@ public:
 int main() {
     
     io_service service;
-    tcp::endpoint ep1(tcp::v4(), 8888);
-    tcp::endpoint ep2(tcp::v4(), 6666);
+    tcp::endpoint ep1(tcp::v4(), 6666);
+    tcp::endpoint ep2(tcp::v4(), 7777);
+    tcp::endpoint ep3(tcp::v4(), 8888);
+
 
     std::cout << ">> Server started, open another terminal and run 'nc localhost [port #]' to test this server" << std::endl; 
     std::cout << "   (Note: use 'netstat -tlnp' to check all TCP/IP port usage of this computer)" << std::endl;
 
-    TcpServer server(service, ep1);
-    server.add_endpoint(ep2); // listening to 2 endpoints at same time
-    server.start(); 
-    service.run();
-
+    try {
+        TcpServer server(service);
+        server.start(ep1);
+        server.start(ep2); 
+        server.start(ep3); 
+        service.run();
+    } 
+    catch (std::exception& e)
+    {
+        std::cout << "[Exception] " << e.what() << std::endl;
+    }
     return 0;
 }
 
