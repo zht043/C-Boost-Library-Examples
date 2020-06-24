@@ -73,10 +73,10 @@ public:
                   << "on port " << sock_service->socket->local_endpoint().port() 
                   << std::endl;
 
-    /*
-        asio::async_read_until(*(service->socket), *(service->read_buffer), "\n", 
-                boost::bind(&TcpServer::handle_read, this, service)); // read up to socket->receive_buffer_size
-     */   
+        // read one line from client    
+        asio::async_read_until(*(sock_service->socket), *(sock_service->read_buffer), "\n", 
+                boost::bind(&TcpServer::handle_read, this, sock_service)); 
+      
 
         // invoke another accept on this endpoint as a new service
         socket_service *new_sock_service = new socket_service(new tcp::socket(*_service), 
@@ -85,22 +85,23 @@ public:
         new_sock_service->acceptor->async_accept(*(new_sock_service->socket), 
             boost::bind(&TcpServer::handle_accept, this, new_sock_service));
     }
-/*
-    void handle_read(socket_ptr socket) {
 
-        std::cout << std::string(read_buffer);
-        memset(read_buffer, 0, strlen(read_buffer));
+    void handle_read(socket_service* sock_service) {
 
-        
-        strcpy(write_buffer, "received!\n");
-        socket->async_write_some(buffer(write_buffer, strlen(write_buffer)), 
-                boost::bind(&TcpServer::handle_write, this, socket));
+        // convert input stream to string
+        std::string received = std::string(std::istreambuf_iterator<char>(*(sock_service->read_stream)), {});
+        std::cout << received;
+
+        sock_service->set_write_buffer(new std::string("received, thank you!\n"));
+        sock_service->socket->async_write_some(buffer(*(sock_service->write_buffer)), 
+                boost::bind(&TcpServer::handle_write, this, sock_service));
     } 
 
-    void handle_write(socket_ptr socket) {
-        socket->async_read_some(buffer(read_buffer), 
-                boost::bind(&TcpServer::handle_read, this, socket)); // loop back to handle read
-    }*/
+    void handle_write(socket_service* sock_service) {
+        // read one line from client    
+        asio::async_read_until(*(sock_service->socket), *(sock_service->read_buffer), "\n", 
+                boost::bind(&TcpServer::handle_read, this, sock_service)); 
+    }
 
 };
 
