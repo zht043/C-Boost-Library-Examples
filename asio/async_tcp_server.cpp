@@ -62,11 +62,16 @@ public:
         services.push_back(sock_service);
 
         sock_service->acceptor->async_accept(*(sock_service->socket), 
-            boost::bind(&TcpServer::handle_accept, this, sock_service));
+            boost::bind(&TcpServer::handle_accept, this, sock_service, asio::placeholders::error));
     }
 
 
-    void handle_accept(socket_service* sock_service) {
+    void handle_accept(socket_service* sock_service, const boost::system::error_code& error ) {
+        if(error) {
+            std::cerr << "[Error Code] " << error.message() << std::endl;
+            _service->stop();
+        }
+
         std::cout << "Accepted socket request from: [" 
                   << sock_service->socket->remote_endpoint().address().to_string() << " port "
                   << sock_service->socket->remote_endpoint().port() << "] " 
@@ -75,7 +80,8 @@ public:
 
         // read one line from client    
         asio::async_read_until(*(sock_service->socket), *(sock_service->read_buffer), "\n", 
-                boost::bind(&TcpServer::handle_read, this, sock_service)); 
+                boost::bind(&TcpServer::handle_read, this, sock_service, 
+                            asio::placeholders::error)); 
       
 
         // invoke another accept on this endpoint as a new service
@@ -83,10 +89,15 @@ public:
                                                sock_service->acceptor); // same acceptor but using a new socket to accept new session
         services.push_back(new_sock_service);
         new_sock_service->acceptor->async_accept(*(new_sock_service->socket), 
-            boost::bind(&TcpServer::handle_accept, this, new_sock_service));
+            boost::bind(&TcpServer::handle_accept, this, new_sock_service,
+                            asio::placeholders::error));
     }
 
-    void handle_read(socket_service* sock_service) {
+    void handle_read(socket_service* sock_service, const boost::system::error_code& error) {
+        if(error) {
+            std::cerr << "[Error Code] " << error.message() << std::endl;
+            _service->stop();
+        }
 
         // convert input stream to string
         std::string received = std::string(std::istreambuf_iterator<char>(*(sock_service->read_stream)), {});
@@ -94,13 +105,20 @@ public:
 
         sock_service->set_write_buffer(new std::string("received, thank you!\n"));
         sock_service->socket->async_write_some(buffer(*(sock_service->write_buffer)), 
-                boost::bind(&TcpServer::handle_write, this, sock_service));
+                boost::bind(&TcpServer::handle_write, this, sock_service, 
+                            asio::placeholders::error));
     } 
 
-    void handle_write(socket_service* sock_service) {
+    void handle_write(socket_service* sock_service, const boost::system::error_code& error) {
+        if(error) {
+            std::cerr << "[Error Code] " << error.message() << std::endl;
+            _service->stop();
+        }
+
         // read one line from client    
         asio::async_read_until(*(sock_service->socket), *(sock_service->read_buffer), "\n", 
-                boost::bind(&TcpServer::handle_read, this, sock_service)); 
+                boost::bind(&TcpServer::handle_read, this, sock_service, 
+                            asio::placeholders::error)); 
     }
 
 };
