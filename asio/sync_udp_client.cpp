@@ -14,13 +14,17 @@ using namespace boost::asio;
 int main() {
     io_service service;
     ip::udp::endpoint endpoint(ip::udp::v4(), 8888); 
+    /* use this snippet for udp broadcast
+    socket.set_option(socket_base::broadcast(true));
+    ip::udp::endpoint broadcast_endpoint(ip::address_v4::broadcast(), port);  
+    */ 
 
     try {
         ip::udp::socket *socket = new ip::udp::socket(service);
         socket->open(ip::udp::v4());
 
         boost::array<char, 1024> receive_buffer; 
-        
+
         size_t num_received;
         std::string to_send;
         for(int i = 0; i <= 100000; i++) {
