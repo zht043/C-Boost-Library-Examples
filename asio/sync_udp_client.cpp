@@ -13,7 +13,7 @@ using namespace boost::asio;
 
 int main() {
     io_service service;
-    ip::udp::endpoint endpoint(ip::udp::v4(), 8888); 
+    ip::udp::endpoint endpoint(ip::address::from_string("173.230.158.61"), 8888); 
     /* use this snippet for udp broadcast
     socket.set_option(socket_base::broadcast(true));
     ip::udp::endpoint broadcast_endpoint(ip::address_v4::broadcast(), port);  

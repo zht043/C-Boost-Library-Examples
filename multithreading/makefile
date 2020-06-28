@@ -1,4 +1,5 @@
-default: thread_and_mutex.exe misc_thread_sync_tests.exe condition_variable.exe
+default: thread_and_mutex.exe misc_thread_sync_tests.exe condition_variable.exe \
+signal_slots.exe
 
 boostlib = -lboost_system -lboost_thread -lpthread -lboost_chrono
 

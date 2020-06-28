@@ -16,7 +16,7 @@ int main() {
     io_service service;
 
     try {
-        tcp::endpoint ep(address::from_string("127.0.0.1"), 8888); // localhost port 8888
+        tcp::endpoint ep(address::from_string("173.230.158.61"), 8888); // localhost port 8888
         tcp::socket socket(service);
         
         socket.open(tcp::v4());
