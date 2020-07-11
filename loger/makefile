@@ -1,5 +1,5 @@
 
-default: trivial_logger.exe logger_with_severity.exe logger_with_tags_format.exe
+default: trivial_logger.exe logger_with_severity.exe logger_with_tags_format.exe logger_asyncfrontend.exe
 
 compiler = g++
 
