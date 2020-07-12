@@ -26,6 +26,10 @@ int main(int argc, char* argv[]) {
     so timer2 should expire exactly at 7sec from now, not 7+3=10sec which is what it would have been if synchronously instead*/ 
     timer1.async_wait(boost::bind(&timer_expire_callback, t0, &timer1_expired)); // use bind to for param of the function passed in
     timer2.async_wait(boost::bind(&timer_expire_callback, t0, &timer2_expired));
+
+
+
+
     service.run(); //remark: io_service::run() is a blocking method
 
     cout << "timer1 expired? : " << (timer1_expired?"True":"False") << endl;

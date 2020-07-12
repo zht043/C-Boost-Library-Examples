@@ -9,9 +9,6 @@ using namespace boost;
 using namespace boost::asio;
 using namespace boost::asio::ip;
 
-typedef boost::shared_ptr<tcp::socket> socket_ptr; // smart pointer(no need to mannually deallocate
-
-
 int main() {
     io_service service;
 

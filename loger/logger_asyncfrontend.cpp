@@ -7,9 +7,13 @@
 // #include <boost/log/sources/record_ostream.hpp>
 #include <boost/log/sinks/async_frontend.hpp>
 #include <boost/log/sinks/text_ostream_backend.hpp>
-//#include <boost/log/utility/setup/common_attributes.hpp>
+#include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/core/null_deleter.hpp>
 #include <boost/smart_ptr/make_shared_object.hpp>
+
+#include <boost/date_time/posix_time/posix_time.hpp>
+
+#include <boost/log/attributes/scoped_attribute.hpp>
 
 #include <iostream>
 #include <boost/chrono.hpp>
@@ -61,6 +65,10 @@ BOOST_LOG_ATTRIBUTE_KEYWORD(severity, "Severity", severity_level);
 BOOST_LOG_ATTRIBUTE_KEYWORD(tag_attr, "Tag", std::string);
 #define LOG_TAG(str) "Tag", boost::log::attributes::constant< std::string >(str)
 
+
+BOOST_LOG_ATTRIBUTE_KEYWORD(line_id, "LineID", unsigned int)
+BOOST_LOG_ATTRIBUTE_KEYWORD(timeline, "Timeline", boost::log::attributes::timer::value_type)
+
 int main(int, char*[])
 {
     /* boost logger is thread safe! */
@@ -77,7 +85,12 @@ int main(int, char*[])
     sink->set_formatter
     (
         boost::log::expressions::stream
-            << "<" << severity << ">\t"
+            << std::hex << std::setw(8) << std::setfill('0') << line_id << std::dec << std::setfill(' ')
+            << ": <" << severity << ">\t"
+            << boost::log::expressions::if_(boost::log::expressions::has_attr(timeline))
+               [
+                    boost::log::expressions::stream << "[" << timeline << "] "
+               ]
             << boost::log::expressions::if_(boost::log::expressions::has_attr(tag_attr))
                [
                     boost::log::expressions::stream << "[" << tag_attr << "] "
@@ -86,11 +99,25 @@ int main(int, char*[])
     );
 
     
+    BOOST_LOG_SCOPED_THREAD_ATTR("Timeline", boost::log::attributes::timer());
+    boost::log::add_common_attributes();
     boost::log::core::get()->add_sink(sink);
-    // boost::log::add_common_attributes();
 
     // construct the logger
     boost::log::sources::severity_logger<severity_level> slog;
+
+/*
+    sink->set_formatter
+    (
+        boost::log::expressions::stream
+            << "<" << severity << ">\t"
+            << boost::log::expressions::if_(boost::log::expressions::has_attr(tag_attr))
+               [
+                    boost::log::expressions::stream << "[" << tag_attr << "] "
+               ]
+            << boost::log::expressions::smessage
+    );
+*/
     
     BOOST_LOG_SEV(slog, sev1) << "hello world 1";
     BOOST_LOG_SEV(slog, sev2) << "hello world 2";
@@ -100,6 +127,7 @@ int main(int, char*[])
     auto t0 = micros();
     slog.add_attribute(LOG_TAG("Tag1"));
     BOOST_LOG_SEV(slog, sev5) << "hello world 5";
+    BOOST_LOG_SEV(slog, sev5) << "hello world 6";
     auto dt = micros() - t0;
     std::cout << dt << std::endl;
 
