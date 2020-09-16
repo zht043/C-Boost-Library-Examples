@@ -44,12 +44,24 @@ public:
            Refer to this post for more details: 
                 https://stackoverflow.com/questions/12215395/thread-pool-using-boost-asio/12267138#12267138
         */
+
+       num_tasks++;
+    }
+
+    /* total CUMULATIVE number of tasks ever being posted by ThreadPool::execute,
+     * which also include those tasks that are already finished
+     * */
+    unsigned int num_posted_funcs() {
+        return num_tasks;
     }
 
 private:
     boost::thread_group threads;
     boost::asio::io_service ios;
     boost::asio::io_service::work io_work;
+    unsigned int num_tasks = 0; // this includes those tasks that finished early and got dequeued,
+                                // this measurement can't deduce anything about the
+                                // the current available free threads
 };
 
 //-------------------------------------------------------------------------------------------------------------------//
@@ -126,5 +138,7 @@ int main(void) {
     /* can't directly join the threads because in a thread pool, 
      * all threads shall exist until the entire program is finished
      */
+
+    std::cout << "Total Tasks Executed: " << thread_pool.num_posted_funcs() << std::endl;
     return 0;
 }
